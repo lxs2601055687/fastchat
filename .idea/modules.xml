@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/dongye-fastChat.iml" filepath="$PROJECT_DIR$/.idea/dongye-fastChat.iml" />
+      <module fileurl="file://$PROJECT_DIR$/dongye-fastchat-starter/dongye-fastchat-starter.iml" filepath="$PROJECT_DIR$/dongye-fastchat-starter/dongye-fastchat-starter.iml" />
+      <module fileurl="file://$PROJECT_DIR$/fastChat-demo/fastChat-demo.iml" filepath="$PROJECT_DIR$/fastChat-demo/fastChat-demo.iml" />
+    </modules>
+  </component>
+</project>
