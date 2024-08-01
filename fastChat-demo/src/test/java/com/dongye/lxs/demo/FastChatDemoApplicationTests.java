@@ -77,9 +77,10 @@ class FastChatDemoApplicationTests {
                 .build();
 
         ClientResponse<Object> call = DyChatClient.call(clientInput);
-
-        if (call.getData() instanceof SseEmitter) {
-            SseEmitter sseEmitter = (SseEmitter) call.getData();
+        System.out.println(call);
+        ClientOutput data = (ClientOutput) call.getData();
+        if (data.getSseEmitter() != null) {
+            SseEmitter sseEmitter = data.getSseEmitter();
 
             // 创建一个线程池来处理事件
             ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

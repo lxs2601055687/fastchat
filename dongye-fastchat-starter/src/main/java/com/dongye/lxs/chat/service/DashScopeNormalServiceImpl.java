@@ -59,12 +59,12 @@ public class DashScopeNormalServiceImpl implements DashScopeService{
             return ClientResponse.errorRequest("请求大模型接口失败");
         }
         String summary = summaryRep.getSummary() == null ? "" : summaryRep.getSummary();
-        return buildClientResponse(sessionId, question,  summary , applicationResult);
+        return buildNormalClientResponse(sessionId, question,  summary , applicationResult);
     }
 
     @Override
-    public ClientResponse<SseEmitter> sseAsk(ClientInput clientInput) {
-        SseEmitter emitter = new SseEmitter();
+    public ClientResponse<ClientOutput> sseAsk(ClientInput clientInput) {
+        SseEmitter emitter = new SseEmitter(10000L);
         SummaryRep summaryRep = null;
         String sessionId = clientInput.getSessionId();
         String question = clientInput.getQuestion();
@@ -85,7 +85,7 @@ public class DashScopeNormalServiceImpl implements DashScopeService{
         });
         emitter.onCompletion(disposable::dispose); // 取消订阅流
         emitter.onTimeout(emitter::complete); // 处理超时情况
-        return ClientResponse.success(emitter);
+        return buildSseClientResponse(sessionId, question, summary, applicationResultFlowable.blockingLast(), emitter);
     }
 
     private void setupApplicationParam(String sessionId, String question) {
@@ -130,7 +130,7 @@ public class DashScopeNormalServiceImpl implements DashScopeService{
     }
 
 
-    private ClientResponse<ClientOutput> buildClientResponse(String sessionId, String question, String summary, ApplicationResult applicationResult) {
+    private ClientResponse<ClientOutput> buildNormalClientResponse(String sessionId, String question, String summary, ApplicationResult applicationResult) {
         ApplicationOutput output = applicationResult.getOutput();
         String result = convertMarkdownToHtml(output.getText());
         saveHistoryMessage(sessionId, question, result);
@@ -149,6 +149,28 @@ public class DashScopeNormalServiceImpl implements DashScopeService{
 
         return ClientResponse.success(clientOutput);
     }
+    private ClientResponse<ClientOutput> buildSseClientResponse(String sessionId, String question, String summary, ApplicationResult applicationResult, SseEmitter sseEmitter) {
+        ApplicationOutput output = applicationResult.getOutput();
+        String result = convertMarkdownToHtml(output.getText());
+        saveHistoryMessage(sessionId, question, result);
+
+        ChatContext context = ChatContext.builder()
+                .messageList(chatHistoryManager.getMessages(sessionId))
+                .time(LocalDateTime.now())
+                .summary(summary)
+                .build();
+
+        ClientOutput clientOutput = ClientOutput.builder()
+                .sessionId(sessionId)
+                .answer(result)
+                .context(context)
+                .sseEmitter(sseEmitter)
+                .build();
+
+        return ClientResponse.success(clientOutput);
+    }
+
+
     private void saveHistoryMessage(String sessionId, String question, String result) {
         HashMap<MessageSource,String> resultMap = new HashMap<>();
         Message message = new Message();

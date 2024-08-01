@@ -12,5 +12,5 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public interface DashScopeService {
      ClientResponse<ClientOutput> normalAsk(ClientInput clientInput) throws NoApiKeyException, InputRequiredException;
 
-    ClientResponse<SseEmitter> sseAsk(ClientInput clientInput);
+    ClientResponse<ClientOutput> sseAsk(ClientInput clientInput);
 }
