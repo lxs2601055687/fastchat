@@ -5,6 +5,7 @@ import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.dongye.lxs.chat.constant.Protocol;
 import com.dongye.lxs.chat.dto.ClientInput;
 import com.dongye.lxs.chat.dto.ClientResponse;
+import com.dongye.lxs.chat.exception.ClientInputValidationException;
 import com.dongye.lxs.chat.strategy.SendStrategy;
 import com.dongye.lxs.chat.strategy.StrategyFactory;
 import com.google.common.cache.CacheBuilder;
@@ -39,8 +40,9 @@ public final class DyChatClient {
      * @param clientInput 客户端输入
      * @return 客户端输出
      */
-    public static <T> ClientResponse<T> call(ClientInput clientInput) throws NoApiKeyException, InputRequiredException {
+    public static <T> ClientResponse<T> call(ClientInput clientInput) throws NoApiKeyException, InputRequiredException, ClientInputValidationException {
         //增加校验参数的方法
+        validateClientInput(clientInput);
         String requestId = clientInput.getRequestId();
         ClientResponse<T> response = (ClientResponse<T>) cache.getIfPresent(requestId);
         if (response == null) {
@@ -55,5 +57,30 @@ public final class DyChatClient {
             }
         }
         return response;
+    }
+
+    private static void validateClientInput(ClientInput clientInput) throws ClientInputValidationException {
+        if (clientInput == null) {
+            throw new ClientInputValidationException("参数未传递");
+        }
+        if (isNullOrEmpty(clientInput.getRequestId())) {
+            throw new ClientInputValidationException("RequestId 不能为空 建议使用UUID");
+        }
+        if (isNullOrEmpty(clientInput.getUserId())) {
+            throw new ClientInputValidationException("UserId 不能为空");
+        }
+        if (isNullOrEmpty(clientInput.getUserName())) {
+            throw new ClientInputValidationException("UserName 不能为空");
+        }
+        if (clientInput.getModelSource() == null) {
+            throw new ClientInputValidationException("ModelSource 不能为空");
+        }
+        if (isNullOrEmpty(clientInput.getQuestion())) {
+            throw new ClientInputValidationException("Question 不能为空");
+        }
+    }
+
+    private static boolean isNullOrEmpty(String str) {
+        return str == null || str.trim().isEmpty();
     }
 }

@@ -9,6 +9,7 @@ import com.dongye.lxs.chat.constant.ModelSource;
 import com.dongye.lxs.chat.dto.ClientInput;
 import com.dongye.lxs.chat.dto.ClientOutput;
 import com.dongye.lxs.chat.dto.ClientResponse;
+import com.dongye.lxs.chat.exception.ClientInputValidationException;
 import com.dongye.lxs.demo.Dto.fastChatRequestDto;
 import com.fasterxml.jackson.databind.util.BeanUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -53,7 +54,7 @@ public class fastChatDemoService {
             String sessionId = data.getSessionId();
             //本次问题的回答，实现自动转为html格式
             String answer = data.getAnswer();
-        } catch (NoApiKeyException | InputRequiredException e) {
+        } catch (NoApiKeyException | InputRequiredException | ClientInputValidationException e) {
             //这里可以记录日志
             log.error("请求大模型接口失败", e);
             return ClientResponse.errorRequest("请求大模型接口失败");
@@ -83,6 +84,8 @@ public class fastChatDemoService {
         } catch (NoApiKeyException | InputRequiredException e) {
             log.error("请求大模型接口失败", e);
             sseEmitter.completeWithError(e);
+        } catch (ClientInputValidationException e) {
+            throw new RuntimeException(e);
         }
         return ClientResponse.success(data);
     }

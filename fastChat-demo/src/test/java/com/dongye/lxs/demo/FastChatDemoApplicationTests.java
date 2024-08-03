@@ -7,6 +7,7 @@ import com.dongye.lxs.chat.constant.ModelSource;
 import com.dongye.lxs.chat.dto.ClientInput;
 import com.dongye.lxs.chat.dto.ClientOutput;
 import com.dongye.lxs.chat.dto.ClientResponse;
+import com.dongye.lxs.chat.exception.ClientInputValidationException;
 import io.netty.util.internal.ObjectUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,7 +28,7 @@ class FastChatDemoApplicationTests {
      * @throws InputRequiredException
      */
     @Test
-    void testOne() throws NoApiKeyException, InputRequiredException {
+    void testOne() throws NoApiKeyException, InputRequiredException, ClientInputValidationException {
         ClientInput clientInput = ClientInput.builder()
                 .requestId(UUID.randomUUID().toString())
                 .modelSource(ModelSource.DASHSCOPE_Normal)
@@ -41,7 +42,7 @@ class FastChatDemoApplicationTests {
      * 测试多轮对话
      */
     @Test
-    void testSecond() throws NoApiKeyException, InputRequiredException {
+    void testSecond() throws NoApiKeyException, InputRequiredException, ClientInputValidationException {
         ClientInput clientInput = ClientInput.builder()
                 .requestId(UUID.randomUUID().toString())
                 .modelSource(ModelSource.DASHSCOPE_Normal)
@@ -67,7 +68,7 @@ class FastChatDemoApplicationTests {
      * 测试SSE连接
      */
     @Test
-      void testSseOne() throws NoApiKeyException, InputRequiredException, InterruptedException {
+      void testSseOne() throws NoApiKeyException, InputRequiredException, InterruptedException, ClientInputValidationException {
         ClientInput clientInput = ClientInput.builder()
                 .requestId(UUID.randomUUID().toString())
                 .modelSource(ModelSource.DASHSCOPE_SSE)
