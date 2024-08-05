@@ -16,7 +16,7 @@ public final class ContextUtil {
         try {
             String markdown = String.valueOf(result.getOutput().getText()); // 修改这里获取消息内容的方式
             String target = MarkdownConverter.convertMarkdownToHtml(markdown);// 修改这里将消息内容转换为 HTML 的方式
-            emitter.send(SseEmitter.event().data(markdown));
+            emitter.send(SseEmitter.event().data(target));
         } catch (Exception e) {
             emitter.completeWithError(e);
         }

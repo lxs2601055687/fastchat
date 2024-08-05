@@ -67,7 +67,7 @@ public class DashScopeNormalServiceImpl implements DashScopeService{
     @Override
     public ClientResponse<ClientOutput> sseAsk(ClientInput clientInput) {
         SseEmitter emitter = new SseEmitter(10000L);
-        SummaryRep summaryRep = null;
+        SummaryRep summaryRep = new SummaryRep();
         String sessionId = clientInput.getSessionId();
         String question = clientInput.getQuestion();
         if (sessionId == null) {

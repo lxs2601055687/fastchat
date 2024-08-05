@@ -77,74 +77,80 @@ mvn -e install:install-file -Dfile=C:\Users\26010\Downloads\dongye-fastchat-star
 3：参考我项目上的demo代码
 
 ```java
+ /**
+ * 普通询问，非流式传输
+ * @param fastChatRequestDto 请求参数
+ * @return 响应结果
+ */
+public ClientResponse<ClientOutput> normalAsk(fastChatRequestDto fastChatRequestDto) {
+        ClientInput clientInput = createClientInput(fastChatRequestDto, ModelSource.DASHSCOPE_Normal);
+
+        ClientOutput data;
+        try {
+        ClientResponse<Object> response = DyChatClient.call(clientInput);
+        data = (ClientOutput) response.getData();
+        logChatContext(data.getContext());
+        } catch (NoApiKeyException | InputRequiredException | ClientInputValidationException e) {
+        log.error("请求大模型接口失败", e);
+        return ClientResponse.errorRequest("请求大模型接口失败");
+        }
+        return ClientResponse.success(data);
+        }
+
 /**
-     * 普通询问，非流式传输
-     * @param fastChatRequestDto
-     * @return
-     */
-    public ClientResponse<ClientOutput> normalAsk(fastChatRequestDto fastChatRequestDto) {
-
-        //modelSourceSSE流式传输或普通传输
-        //requestId请求id，用于区分每次请求 实现幂等
-        ClientInput clientInput = ClientInput.builder()
-                .modelSource(ModelSource.DASHSCOPE_Normal)
-                .requestId(UUID.randomUUID().toString().replace("-", ""))
-                .build();
-        BeanUtils.copyProperties(fastChatRequestDto, clientInput);
-
-        ClientOutput data = null;
+ * 流式传输
+ * @param fastChatRequestDto 请求参数
+ * @return 响应结果
+ */
+public ClientResponse<ClientOutput> sseAsk(fastChatRequestDto fastChatRequestDto) {
+        ClientInput clientInput = createClientInput(fastChatRequestDto, ModelSource.DASHSCOPE_SSE);
+        ClientOutput data;
         try {
-            ClientResponse<Object> call = DyChatClient.call(clientInput);
-            data = (ClientOutput) call.getData();
-            ChatContext context = data.getContext();
-            if (context != null) {
-                log.info("context:{}", context);
-            }
-            //summary问答总结
-            String summary = context.getSummary();
-            //历史记录，这里应该将记录更新到对应的聊天记录表中
-            List<Message> messageList = context.getMessageList();
-            //会话id 第一次提问不需要传，之后的多轮对话传入sessionId 本SDK自动帮你返回聊天记录历史消息，一个小时内有效
-            String sessionId = data.getSessionId();
-            //本次问题的回答，实现自动转为html格式
-            String answer = data.getAnswer();
-        } catch (NoApiKeyException | InputRequiredException e) {
-            //这里可以记录日志
-            log.error("请求大模型接口失败", e);
-            return ClientResponse.errorRequest("请求大模型接口失败");
+        ClientResponse<Object> response = DyChatClient.call(clientInput);
+        data = (ClientOutput) response.getData();
+        logChatContext(data.getContext());
+        String sseUrl = data.getSseUrl();
+        if (sseUrl == null) {
+        log.error("回调错误，sseUrl为空");
+        return ClientResponse.errorRequest("sseUrl is null");
+        }
+        } catch (NoApiKeyException | InputRequiredException | ClientInputValidationException e) {
+        log.error("请求大模型接口失败", e);
+        return ClientResponse.errorRequest("请求大模型接口失败");
         }
         return ClientResponse.success(data);
-    }
-
-    /**
-     * 流式传输
-     * @param fastChatRequestDto
-     * @return
-     */
-    public ClientResponse<ClientOutput> sseAsk(fastChatRequestDto fastChatRequestDto) {
-        //modelSourceSSE流式传输或普通传输
-        //requestId请求id，用于区分每次请求 实现幂等
-        ClientInput clientInput = ClientInput.builder()
-                .modelSource(ModelSource.DASHSCOPE_SSE)
-                .requestId(UUID.randomUUID().toString().replace("-", ""))
-                .build();
-        BeanUtils.copyProperties(fastChatRequestDto, clientInput);
-        SseEmitter sseEmitter = new SseEmitter();
-        ClientOutput data = null;
-        try {
-            ClientResponse<Object> call = DyChatClient.call(clientInput);
-             data = (ClientOutput) call.getData();
-            sseEmitter = data.getSseEmitter();
-        } catch (NoApiKeyException | InputRequiredException e) {
-            log.error("请求大模型接口失败", e);
-            sseEmitter.completeWithError(e);
         }
-        return ClientResponse.success(data);
+
+/**
+ * 创建ClientInput对象
+ * @param fastChatRequestDto 请求参数
+ * @param modelSource 模型来源
+ * @return ClientInput对象
+ */
+private ClientInput createClientInput(fastChatRequestDto fastChatRequestDto, ModelSource modelSource) {
+        ClientInput clientInput = ClientInput.builder()
+        .modelSource(modelSource)
+        .requestId(UUID.randomUUID().toString().replace("-", ""))
+        .build();
+        BeanUtils.copyProperties(fastChatRequestDto, clientInput);
+        return clientInput;
+        }
+
+/**
+ * 记录聊天上下文信息
+ * @param context 聊天上下文
+ */
+private void logChatContext(ChatContext context) {
+        if (context != null) {
+        log.info("context: {}", context);
+        log.info("summary: {}", context.getSummary());
+        log.info("messageList: {}", context.getMessageList());
+        }
     }
 
 ```
 
-4：效果
+4：非打字机效果：
 
 ```
 http://127.0.0.1:8080/fastChat/normalAsk
@@ -228,6 +234,46 @@ http://127.0.0.1:8080/fastChat/normalAsk
 }
 ```
 
+5：打字机式SSE流式传输效果
+
+```
+http://127.0.0.1:8080/fastChat/sseAsk
+```
+
+```
+{
+"userId":"1",
+"userName":"lxs",
+"question": "介绍一下海南大学"
+}
+```
+
+```
+{
+    "code": 200,
+    "message": "成功",
+    "data": {
+        "context": {
+            "summary": "海南大学是海南省重点建设的综合性大学。",
+            "messageList": [
+                {
+                    "messageMap": {
+                        "USER": "介绍一下海南大学",
+                        "MODEL": "<p>海南大学，位于中国海南省海口市，是海南省属重点综合性大学，具有博士学位授予权和推荐免试研究生资格。学校创建于1958年，经过数十年的发展，现已形成了以工学、管理学、经济学为主体，多学科协调发展的学科体系。海南大学设有多个学院，提供本科、硕士和博士层次的教育，涵盖了工、管、经、法、文、理、医、教育、艺术等多个学科领域。学校注重科学研究与社会服务，致力于培养具有国际视野、创新精神和实践能力的高素质人才。</p>\n"
+                    }
+                }
+            ],
+            "time": "2024-08-05T11:11:52.1406344"
+        },
+        "answer": "<p>海南大学，位于中国海南省海口市，是海南省属重点综合性大学，具有博士学位授予权和推荐免试研究生资格。学校创建于1958年，经过数十年的发展，现已形成了以工学、管理学、经济学为主体，多学科协调发展的学科体系。海南大学设有多个学院，提供本科、硕士和博士层次的教育，涵盖了工、管、经、法、文、理、医、教育、艺术等多个学科领域。学校注重科学研究与社会服务，致力于培养具有国际视野、创新精神和实践能力的高素质人才。</p>\n",
+        "sessionId": "431be7c385c849b7b782f7b487b0b925",
+        "sseUrl": "/fastChat/sse/431be7c385c849b7b782f7b487b0b925"
+    }
+}
+```
+
+使用该接口返回的回调地址（参数就是会话id）：/fastChat/sse/431be7c385c849b7b782f7b487b0b925
+![img_1.png](img_1.png)
 ### 最后：
 
 因本人目前实习以及秋招事情过多，当然还有懒惰的原因，计划实现的websocket模块和对接其他厂模型的计划暂时搁置，欢迎其他小伙伴给本项目提交pr。
