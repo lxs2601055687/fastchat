@@ -274,6 +274,57 @@ http://127.0.0.1:8080/fastChat/sseAsk
 
 使用该接口返回的回调地址（参数就是会话id）：/fastChat/sse/431be7c385c849b7b782f7b487b0b925
 ![img_1.png](img_1.png)
+
+6：由于SSE场景较为复杂提供前端例子如下：
+
+```js
+async function fetchInitialResponse(clientInput) {
+    const response = await fetch('/fastChat/sseAsk', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(clientInput),
+    });
+
+    const data = await response.json();
+    return data;
+}
+function setupSseConnection(sseUrl) {
+    //建立SSE连接
+    const eventSource = new EventSource(sseUrl);
+    eventSource.onmessage = function (event) {
+        const result = JSON.parse(event.data);
+        // 处理接收到的 SSE 数据
+        console.log('New SSE Data:', result);
+    };
+    eventSource.onerror = function (error) {
+        console.error('SSE error:', error);
+        eventSource.close();
+    };
+}
+async function initiateSseCommunication(clientInput) {
+    const initialResponse = await fetchInitialResponse(clientInput);
+    const { sessionId, question, summary, sseUrl } = initialResponse;
+
+    // 显示初始响应（总结）
+    console.log('Initial Response:', summary);
+    // 建立 SSE 连接
+    setupSseConnection(sseUrl);
+}
+
+// 示例用法
+const clientInput = {
+    sessionId: null, // 新的会话第一次不传递
+    userId:"",
+    userName:"",
+    question: '你的问题'
+};
+
+initiateSseCommunication(clientInput);
+
+```
+
 ### 最后：
 
 因本人目前实习以及秋招事情过多，当然还有懒惰的原因，计划实现的websocket模块和对接其他厂模型的计划暂时搁置，欢迎其他小伙伴给本项目提交pr。
