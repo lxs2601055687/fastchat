@@ -20,6 +20,7 @@ public class ClientOutput {
 
     private String sessionId;
 
-    private SseEmitter sseEmitter;
+    private String sseUrl;
+
 
 }

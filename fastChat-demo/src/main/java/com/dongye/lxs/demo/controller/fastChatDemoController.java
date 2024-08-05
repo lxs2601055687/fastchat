@@ -4,7 +4,8 @@ import com.dongye.lxs.chat.dto.ClientInput;
 import com.dongye.lxs.chat.dto.ClientOutput;
 import com.dongye.lxs.chat.dto.ClientResponse;
 import com.dongye.lxs.demo.Dto.fastChatRequestDto;
-import com.dongye.lxs.demo.service.fastChatDemoService;
+import com.dongye.lxs.demo.service.FastChatDemoService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 
@@ -17,7 +18,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class fastChatDemoController {
 
    @Autowired
-    private fastChatDemoService fastChatService;
+    private FastChatDemoService fastChatService;
 
     @PostMapping("/fastChat/normalAsk")
     public ClientResponse<ClientOutput> normalAsk(@RequestBody fastChatRequestDto fastChatRequestDto) {

@@ -8,6 +8,7 @@ import com.dongye.lxs.chat.dto.ClientInput;
 import com.dongye.lxs.chat.dto.ClientOutput;
 import com.dongye.lxs.chat.dto.ClientResponse;
 import com.dongye.lxs.chat.exception.ClientInputValidationException;
+import com.dongye.lxs.chat.manager.SseEmitterStore;
 import io.netty.util.internal.ObjectUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -80,10 +81,8 @@ class FastChatDemoApplicationTests {
         ClientResponse<Object> call = DyChatClient.call(clientInput);
         System.out.println(call);
         ClientOutput data = (ClientOutput) call.getData();
-        if (data.getSseEmitter() != null) {
-            SseEmitter sseEmitter = data.getSseEmitter();
-
-            // 创建一个线程池来处理事件
+        SseEmitter sseEmitter = SseEmitterStore.getEmitter(data.getSessionId());
+        // 创建一个线程池来处理事件
             ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
             executor.setCorePoolSize(5);
             executor.setMaxPoolSize(10);
@@ -134,10 +133,8 @@ class FastChatDemoApplicationTests {
 
             // 关闭线程池
             executor.shutdown();
-        } else {
-            throw new IllegalStateException("Expected SseEmitter but received: " + call.getData().getClass());
         }
-    }
+
 
     // 模拟接收事件数据的方法（需根据具体实现进行修改）
     private static String receiveEventData() {

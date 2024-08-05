@@ -7,10 +7,12 @@ import com.dongye.lxs.chat.bean.ChatContext;
 import com.dongye.lxs.chat.bean.Message;
 import com.dongye.lxs.chat.bean.SummaryRep;
 import com.dongye.lxs.chat.constant.MessageSource;
+import com.dongye.lxs.chat.constant.SseUrl;
 import com.dongye.lxs.chat.dto.ClientInput;
 import com.dongye.lxs.chat.dto.ClientOutput;
 import com.dongye.lxs.chat.dto.ClientResponse;
 import com.dongye.lxs.chat.manager.ChatHistoryManager;
+import com.dongye.lxs.chat.manager.SseEmitterStore;
 import com.dongye.lxs.chat.utils.ContextUtil;
 import com.dongye.lxs.chat.utils.MarkdownConverter;
 import io.reactivex.Flowable;
@@ -69,7 +71,7 @@ public class DashScopeNormalServiceImpl implements DashScopeService{
         String sessionId = clientInput.getSessionId();
         String question = clientInput.getQuestion();
         if (sessionId == null) {
-            //认为是第一次对话，生成总结
+            // 认为是第一次对话，生成总结
             summaryRep = generateSummary(question);
             sessionId = summaryRep.getSessionId();
         }
@@ -85,8 +87,17 @@ public class DashScopeNormalServiceImpl implements DashScopeService{
         });
         emitter.onCompletion(disposable::dispose); // 取消订阅流
         emitter.onTimeout(emitter::complete); // 处理超时情况
-        return buildSseClientResponse(sessionId, question, summary, applicationResultFlowable.blockingLast(), emitter);
+
+        // 将 emitter 注册到一个存储（例如一个 map）中，使用 sessionId 管理 SSE 连接
+        SseEmitterStore.register(sessionId, emitter);
+
+        // 构建 SSE URL
+        String sseUrl = SseUrl.DASH_SCOPE_SSE_URL + sessionId;
+
+        // 返回初始响应以及 SSE URL
+        return buildSseClientResponse(sessionId, question, summary, applicationResultFlowable.blockingLast(), sseUrl);
     }
+
 
     private void setupApplicationParam(String sessionId, String question) {
         applicationParam.setPrompt(question);
@@ -149,7 +160,7 @@ public class DashScopeNormalServiceImpl implements DashScopeService{
 
         return ClientResponse.success(clientOutput);
     }
-    private ClientResponse<ClientOutput> buildSseClientResponse(String sessionId, String question, String summary, ApplicationResult applicationResult, SseEmitter sseEmitter) {
+    private ClientResponse<ClientOutput> buildSseClientResponse(String sessionId, String question, String summary, ApplicationResult applicationResult, String sseUrl) {
         ApplicationOutput output = applicationResult.getOutput();
         String result = convertMarkdownToHtml(output.getText());
         saveHistoryMessage(sessionId, question, result);
@@ -164,7 +175,7 @@ public class DashScopeNormalServiceImpl implements DashScopeService{
                 .sessionId(sessionId)
                 .answer(result)
                 .context(context)
-                .sseEmitter(sseEmitter)
+                .sseUrl(sseUrl)
                 .build();
 
         return ClientResponse.success(clientOutput);
