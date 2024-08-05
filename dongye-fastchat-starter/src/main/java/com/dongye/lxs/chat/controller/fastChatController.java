@@ -8,12 +8,18 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Controller
 public class fastChatController {
+    /**
+     * 获取SseEmitter
+     * @param sessionId
+     * @return
+     * 现在该SDK仅支持阿里云的DASHSCOPE模型
+     * 后续优化可以将模型作为参数传递解决接口的通用性
+     */
     @GetMapping("/fastChat/sse/dashScope/{sessionId}")
     public SseEmitter getSseEmitter(@PathVariable String sessionId) {
         SseEmitter emitter = SseEmitterStore.getEmitter(sessionId);
-        if (emitter == null) {
-            emitter = new SseEmitter(10000L);
-            SseEmitterStore.register(sessionId, emitter);
+        if(emitter == null) {
+            throw new RuntimeException("SseEmitter not found");
         }
         return emitter;
     }
