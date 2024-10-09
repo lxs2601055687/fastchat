@@ -1,11 +1,13 @@
 package com.dongye.lxs.chat.client;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.alibaba.dashscope.exception.InputRequiredException;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.dongye.lxs.chat.constant.Protocol;
 import com.dongye.lxs.chat.dto.ClientInput;
 import com.dongye.lxs.chat.dto.ClientResponse;
 import com.dongye.lxs.chat.exception.ClientInputValidationException;
+import com.dongye.lxs.chat.sentinel.SentinelConstant;
 import com.dongye.lxs.chat.strategy.SendStrategy;
 import com.dongye.lxs.chat.strategy.StrategyFactory;
 import com.google.common.cache.CacheBuilder;
@@ -40,6 +42,10 @@ public final class DyChatClient {
      * @param clientInput 客户端输入
      * @return 客户端输出
      */
+
+    @SentinelResource(value = SentinelConstant.chatByTongYiSse,
+            blockHandler = "handleBlockException",
+            fallback = "handleFallback")
     public static <T> ClientResponse<T> call(ClientInput clientInput) throws NoApiKeyException, InputRequiredException, ClientInputValidationException {
         //增加校验参数的方法
         validateClientInput(clientInput);
@@ -58,7 +64,9 @@ public final class DyChatClient {
         }
         return response;
     }
-
+    public static <T> ClientResponse<T>  handleFallback(ClientInput clientInput){
+        return null;
+    }
     private static void validateClientInput(ClientInput clientInput) throws ClientInputValidationException {
         if (clientInput == null) {
             throw new ClientInputValidationException("参数未传递");
